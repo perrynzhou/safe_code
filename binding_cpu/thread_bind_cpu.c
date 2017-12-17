@@ -27,8 +27,14 @@
  *                      |
  *                      share memory,fd resource with processor1
  *
+ *
+ *
+ * process can reduce cpu cache miss by binding pid of main process to some cpu
  */
 #define _GNU_SOURCE
+#define THREADS_MAX 64
+#include <ctype.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sched.h>
@@ -39,13 +45,19 @@
 void *get_running_cpu(void *arg)
 {
     
+    int *cpu = (int *)arg;
     int cpu_num = sysconf(_SC_NPROCESSORS_CONF);
-    
+
     cpu_set_t set;
     cpu_set_t get;
     CPU_ZERO(&set);
     CPU_ZERO(&get);
-    CPU_SET(rand()%cpu_num,&set);
+       
+    if(*cpu > cpu_num) {
+        CPU_SET(rand()%cpu_num,&set);
+    }else{
+        CPU_SET(*cpu,&set);
+    }
     pthread_setaffinity_np(pthread_self(),sizeof(set),&set);
     //sched_setaffinity(0,sizeof(cpu_set_t),&set)   //first parameter is 0,can affect thread
     pthread_getaffinity_np(pthread_self(),sizeof(cpu_set_t),&get);
@@ -57,25 +69,62 @@ void *get_running_cpu(void *arg)
     }
     return NULL;
 }
-int main(void) {
-    int size = 5;
+inline static bool is_digit(const char *s) {
+    while(*s != '\0') {
+        if(isdigit(*s++)==0)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+int main(int argc,char *argv[]) {
+    int size = 0;
+    int cpu_num = sysconf(_SC_NPROCESSORS_CONF);
+    if (argc !=4) {
+        fprintf(stdout,"usage:./thread_test [main_cpu_id] [threads_size] [thread_bind_cpu]\n");
+        fprintf(stdout,"                    --main_cpu_id   main processor\n");
+        fprintf(stdout,"                    --threads_size  create thread size\n");
+        fprintf(stdout,"                    --thread_bind_cpu  -1 using random cpu num,other value bind cpu num\n");
+        return 0;
+    }
+    int main_cpu = 0;
+    int threads_size = 0;
+    int thread_cpu_num = 0;
+    if(!is_digit(argv[1])) {
+        main_cpu = cpu_num-1;
+    }else{
+        main_cpu = atoi(argv[1]) >cpu_num ?cpu_num-1:atoi(argv[1]);
+        
+    }
+    if(!is_digit(argv[2])) {
+        threads_size = (THREADS_MAX>>2);
+    }else{
+        threads_size = atoi(argv[2]);
+    }
+    if(!is_digit(argv[3])) {
+        thread_cpu_num = rand()%cpu_num;
+    }else{
+        thread_cpu_num= atoi(argv[3]);
+    }
+    size = threads_size;
+    pid_t pid = getpid();
     cpu_set_t mset,mget;
     CPU_ZERO(&mset);
     CPU_ZERO(&mget);
-    int cpu_num = sysconf(_SC_NPROCESSORS_CONF);
-    CPU_SET(2,&mset);
-    sched_setaffinity(getpid(),sizeof(cpu_set_t),&mset);
-    sched_getaffinity(getpid(),sizeof(cpu_set_t),&mget);
+    CPU_SET(main_cpu,&mset);
+    sched_setaffinity(pid,sizeof(cpu_set_t),&mset);
+    sched_getaffinity(pid,sizeof(cpu_set_t),&mget);
     for(int i=0;i<cpu_num;i++)
     {
         if(CPU_ISSET(i,&mget)){
-            fprintf(stdout,"main #%ld running processor %d\n\n",getpid(),i);
+            fprintf(stdout,"Main #%ld running processor %d\n\n",getpid(),i);
         }
     }
     pthread_t *threads = (pthread_t *)calloc(sizeof(pthread_t),size);
     for(int i=0;i<size;i++)
     {
-        if(pthread_create(&threads[i],NULL,(void *)&get_running_cpu,(void *)NULL) == -1)
+        if(pthread_create(&threads[i],NULL,(void *)&get_running_cpu,(void *)&thread_cpu_num) == -1)
         {
             fprintf(stdout,"%s\n",strerror(errno));
             return -1;
