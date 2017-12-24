@@ -1,3 +1,3 @@
 all:
 	rm -rf test
-	gcc -std=c99 server.c -o test
+	gcc -g -std=c99 server.c   -o  test -lpthread
