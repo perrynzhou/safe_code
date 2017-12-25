@@ -6,6 +6,7 @@
  ************************************************************************/
 #include <stdbool.h>
 #include <unistd.h>
+#include <string.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -51,18 +52,20 @@ void srv_run(const char *file,int fd)
             break;
         }
         printf("sleep 10 seconds, after that transport file\n");
-        sleep(10);
+        sleep(15);
         char rbuf[64] = {'\0'};
-        if(fgets(rbuf,64,fp)!=NULL)
+        while(fgets(rbuf,64,fp)!=NULL)
         {
-            if(send(connfd,rbuf,64,MSG_NOSIGNAL) == -1)
+            if(send(connfd,rbuf,strlen(rbuf),0) == -1)
             {
                 printf("send error:%s\n",strerror(errno));
                 break;
             }
         }
         printf("send file success\n");
-        fclose(fp);
+        rewind(fp);
+        /*
+        shutdown(fd,SHUT_WR);
         char wbuf[64] = {'\0'};
         if(recv(connfd,wbuf,64,0) == -1)
         {
@@ -70,6 +73,8 @@ void srv_run(const char *file,int fd)
             break;
         }
         printf("recv msg:%s\n",wbuf);
+        */
+        close(connfd);
     }
 }
 int main(int argc,char *argv[])
