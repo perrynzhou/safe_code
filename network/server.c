@@ -91,7 +91,7 @@ static void *send_file(void *arg)
      *
      */
     shutdown(c->cli_fd,1);
-    while(recv(c->cli_fd,r_buf,64,0)!=-1);
+    while(recv(c->cli_fd,r_buf,64,0)>0);
     if(c!=NULL)
     {
         close(c->cli_fd);
@@ -117,17 +117,6 @@ void server_run(const char *file,int fd)
         }
         client *c=client_init(file,connfd);
         pthread_create(&c->t,NULL,(void *)&send_file,(void *)c);
-        /*
-        shutdown(fd,SHUT_WR);
-        char wbuf[64] = {'\0'};
-        if(recv(connfd,wbuf,64,0) == -1)
-        {
-            printf("recv error:%s\n",strerror(errno));
-            break;
-        }
-        printf("recv msg:%s\n",wbuf);
-        */
-        //close(connfd);
     }
 }
 int main(int argc,char *argv[])
