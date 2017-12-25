@@ -19,10 +19,10 @@
 #include <netinet/in.h>
 #include <assert.h>
 #include <fcntl.h>
-typedef struct _client {
+typedef struct  {
     pthread_t t;
-    int file_fd;
-    int cli_fd;
+    int read_fd;
+    int conn_fd;
 }client;
 int server_init(int port)
 {
@@ -48,36 +48,36 @@ int server_init(int port)
     return fd;
 
 }
-static client *client_init(const char *path,int cli_fd)
+static client *client_init(const char *path,int conn_fd)
 {
     client *c=(client *)calloc(1,sizeof(*c));
     assert(c!=NULL);
-    c->file_fd=open(path,O_RDONLY,0644);
-    c->cli_fd =cli_fd;
+    c->read_fd=open(path,O_RDONLY,0644);
+    c->conn_fd =conn_fd;
     return c;
 }
 static void *send_file(void *arg)
 {
     client *c = (client *)arg;
     pthread_detach(pthread_self());
-    int file_fd = c->file_fd;
-    int cli_fd = c->cli_fd;
+    int read_fd = c->read_fd;
+    int conn_fd = c->conn_fd;
     char r_buf[64] = {'\0'};
     struct stat st;
-    fstat(c->file_fd,&st);
+    fstat(c->read_fd,&st);
     int r_size=0;
     int second=10;
 
     char ip[32]={'\0'};
     struct sockaddr_in local;
     socklen_t len= sizeof(ip);
-    getpeername(c->cli_fd, (struct sockaddr *)&local, &len);
+    getpeername(c->conn_fd, (struct sockaddr *)&local, &len);
     inet_ntop(AF_INET, &local.sin_addr, ip, sizeof(ip));
     fprintf(stdout,"server accept  client %s:%d   [thread #%ld sleep %d]\n",ip,ntohs(local.sin_port),pthread_self(),second);
     sleep(second);
-    while((r_size=read(c->file_fd,r_buf,64))>0)
+    while((r_size=read(c->read_fd,r_buf,64))>0)
     {
-        if(send(c->cli_fd,r_buf,r_size,0)==-1)
+        if(send(c->conn_fd,r_buf,r_size,0)==-1)
         {
             fprintf(stdout,"send error:%s\n",strerror(errno));
             break;
@@ -90,12 +90,12 @@ static void *send_file(void *arg)
      *2.先调用shutdown,即使客户端在数据未收全前后发送数据，服务端关闭客户端链接都不会导致客户端的数据丢失
      *
      */
-    shutdown(c->cli_fd,1);
-    while(recv(c->cli_fd,r_buf,64,0)>0);
+    shutdown(c->conn_fd,1); //safe to wirte complete
+    while(recv(c->conn_fd,r_buf,64,0)>0);//safe to write compelte
     if(c!=NULL)
     {
-        close(c->cli_fd);
-        close(c->file_fd);
+        close(c->conn_fd);
+        close(c->read_fd);
         free(c);
     }
     fprintf(stdout,"thread #%ld send  %ld bytes success\n",pthread_self(),st.st_size); 
@@ -103,12 +103,12 @@ static void *send_file(void *arg)
 }
 void server_run(const char *file,int fd)
 {
-    int file_fd = open(file,O_RDONLY);
-    if(file_fd == -1) {
+    int read_fd = open(file,O_RDONLY);
+    if(read_fd == -1) {
         printf("open file error:%s\n",strerror(errno));
         return;
     }
-    close(file_fd);
+    close(read_fd);
     while(true){
         int connfd=0;
         if( (connfd = accept(fd, (struct sockaddr*)NULL, NULL)) == -1 ){
