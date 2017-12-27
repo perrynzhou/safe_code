@@ -21,7 +21,10 @@
 #include <fcntl.h>
 #include <new>
 #include <iostream>
+//global function for thread execute task
 static void* Task(void* arg);
+
+//thread per client mode
 class CThread {
 public:
     CThread(int read_fd, int conn_fd)
@@ -37,6 +40,7 @@ public:
 private:
     pthread_t m_thread;
 };
+//server implemention
 class Server {
 public:
     Server(int port, int listen)
