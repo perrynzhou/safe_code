@@ -1,8 +1,8 @@
 /*************************************************************************
-	> File Name: multi_thd_cp.c
-	> Author: 
-	> Mail: 
-	> Created Time: 2017年12月23日 星期六 09时05分37秒
+    > File Name: multi_thd_cp.c
+    > Author: 
+    > Mail: 
+    > Created Time: 2017年12月23日 星期六 09时05分37秒
  ************************************************************************/
 
 #include <stdio.h>
@@ -58,10 +58,9 @@ static thd_arg* thd_arg_create(const char* src, const char* dst, int thd_count)
     for (int i = 0; i < thd_count; i++) {
         total_size += tg[i].size;
     }
-    fprintf(stdout, "origin size=%d,now size=%d,threads =%d\n\n", st.st_size, total_size, thd_count);
+    //fprintf(stdout, "origin size=%d,now size=%d,threads =%d\n\n", st.st_size, total_size, thd_count);
     close(sfd);
     return tg;
-    close(sfd);
 }
 void thd_copy(thd_arg* g)
 {
@@ -70,22 +69,19 @@ void thd_copy(thd_arg* g)
 
     int sfd = open((const char*)&g->source, O_RDONLY, 0644);
     int dfd = open((const char*)&g->target, O_CREAT | O_RDWR, 0644);
-    fprintf(stdout, "thread # %ld,sfd=%d,dfd=%d,start_offset=%d,write_size=%d\n", pthread_self(), sfd, dfd, g->start, g->size);
+    //fprintf(stdout, "thread # %ld,sfd=%d,dfd=%d,start_offset=%d,write_size=%d\n", pthread_self(), sfd, dfd, g->start, g->size);
     lseek(sfd, g->start, SEEK_SET);
     lseek(dfd, g->start, SEEK_SET);
     int wsize = 0;
     while (wsize <= rsize) {
         int rsize = 0;
-        char buf[512] = { '\0' };
+        char buf[MB] = { '\0' };
         if ((rsize = read(sfd, buf, sizeof(buf))) > 0) {
-            //fprintf(stdout, "thread #%ld read :%s\n", pthread_self(), strerror(errno));
             if (write(dfd, buf, rsize) <= 0) {
-                //fprintf(stdout, "thread #%ld write :%s\n", pthread_self(), strerror(errno));
                 return;
             }
             wsize += rsize;
             rsize -= rsize;
-            //fprintf(stdout, "thread #%ld write size=%d\n", pthread_self(), size);
         } else {
             break;
         }
