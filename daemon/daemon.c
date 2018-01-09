@@ -31,16 +31,26 @@ int run_daemon()
         fprintf(stdout, "parent %d process exit\n", pid);
         _exit(0);
     }
-    fprintf(stdout, "child process %d\n", getpid());
-    setsid(); //确保不是首进程
-    chdir("/");
+    umask(0);
+    if (setsid() == -1) {
+        fprintf(stdout, "setsid:%s\n", strerror(errno));
+        _exit(0);
+    } //确保不是首进程
     for (int i = 0; i < 3; i++) {
         close(i);
-        open("/dev/null", O_RDWR);
-        dup(0);
-        dup(0);
     }
     umask(0);
+    pid = fork();
+
+    chdir("/");
+
+    if (pid != 0) {
+        _exit(0);
+    }
+    fprintf(stdout, "daemon process %d\n", getpid());
+    int stdfd = open("/dev/null", O_RDWR);
+    dup2(stdfd, STDOUT_FILENO);
+    dup2(stdfd, STDERR_FILENO);
     return 0;
 }
 int main(void)
