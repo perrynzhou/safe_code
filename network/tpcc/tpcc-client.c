@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
     {
       printf("send error: %s(errno: %d)\n", strerror(errno), errno);
     }
-    if (recv(sock, &val, sizeof(val), 0) == -1)
+    if (recv(sock, &val, sizeof(val), MSG_NOSIGNAL) == -1)
     {
       printf("recv error: %s(errno: %d)\n", strerror(errno), errno);
     }
