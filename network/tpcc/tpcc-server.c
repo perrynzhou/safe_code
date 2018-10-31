@@ -140,8 +140,13 @@ void handle_accept_request(void *arg)
     }
   }
 }
+
 int main(int argc, char *argv[])
 {
+  if(argv[1]  !=NULL && strncmp(argv[1],"-h",2)==0) {
+        fprintf(stdout,"\nusage:%s {port} {thread_count}\n",argv[0]);
+        return -1;
+  }
   int port = (NULL == argv[1]) ? 6789 : atoi(argv[1]);
   int sock = init_socket(port);
   if (sock == -1)

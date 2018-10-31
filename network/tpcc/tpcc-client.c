@@ -23,7 +23,7 @@ void signal_handle(int signo)
 }
 int usage(const char *s)
 {
-  fprintf(stdout, "usage: %s {host} {port} {count}");
+  fprintf(stdout, "\nusage: %s {host} {port} {count}\n");
   return -1;
 }
 int main(int argc, char *argv[])
