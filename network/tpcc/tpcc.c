@@ -16,5 +16,5 @@ void get_sock_info(int fd, char *str) {
   int port = ntohs(s->sin_port);
   char ip_addr[64] = {'\0'};
   inet_ntop(AF_INET, &s->sin_addr, (char *)&ip_addr, 64);
-  sprintf(str, "%s:%d\n", ip_addr, port);
+  sprintf(str, "%s:%d", ip_addr, port);
 }

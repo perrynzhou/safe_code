@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <errno.h>
@@ -29,7 +30,7 @@ typedef struct request
   pthread_t id;
   bool is_first;
 } request;
- static request *request_create(int cfd)
+static request *request_create(int cfd)
 {
   request *req = (request *)calloc(1, sizeof(*req));
   req->is_first = false;
@@ -61,10 +62,10 @@ static int init_socket(int port)
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock == -1)
   {
-    printf("socket error: %s(errno: %d)\n",strerror(errno),errno);
+    printf("socket error: %s(errno: %d)\n", strerror(errno), errno);
     return -1;
   }
- 
+
   struct sockaddr_in addr;
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
@@ -73,12 +74,12 @@ static int init_socket(int port)
 
   if (bind(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr)) < 0)
   {
-    printf("bind  error: %s(errno: %d)\n",strerror(errno),errno);
+    printf("bind  error: %s(errno: %d)\n", strerror(errno), errno);
     return -1;
   }
-   if (listen(sock, BACKLOG) < 0)
+  if (listen(sock, BACKLOG) < 0)
   {
-    printf("listen error: %s(errno: %d)\n",strerror(errno),errno);
+    printf("listen error: %s(errno: %d)\n", strerror(errno), errno);
     return -1;
   }
   return sock;
@@ -87,25 +88,34 @@ void handle_connection(void *arg)
 {
 
   request *req = (request *)arg;
-  if (recv(req->cfd, &req->sm, sizeof(session_msg),0) == -1)
+  if (recv(req->cfd, &req->sm, sizeof(session_msg), MSG_NOSIGNAL) == -1)
   {
-        printf("send error: %s(errno: %d)\n",strerror(errno),errno);
+    printf("send error: %s(errno: %d)\n", strerror(errno), errno);
   }
-  fprintf(stdout,"server recv session_msg:number=%d,length=%d\n",req->sm.number,req->sm.length);
-   payload_msg pm;
-   pm.length = req->sm.length + 4;
-  while (recv(req->cfd, &pm, sizeof(pm),0) != -1) //block function
+  fprintf(stdout, "server recv session_msg:number=%d,length=%d\n", req->sm.number, req->sm.length);
+  payload_msg pm;
+  pm.length = req->sm.length + 4;
+  for (int i = 0; i < req->sm.number; i++)
   {
-    int v = rand()%1024;
-    if (send(req->cfd, &v, sizeof(int),0) == -1)
+    if (recv(req->cfd, &pm, sizeof(pm), 0) == -1)
     {
-     printf("recv error: %s(errno: %d)\n",strerror(errno),errno);
+      printf("recv error: %s(errno: %d)\n", strerror(errno), errno);
+
+    } //block function
+    int v = rand() % 1024;
+    if (send(req->cfd, &v, sizeof(int), MSG_NOSIGNAL) == -1)
+    {
+      printf("send error: %s(errno: %d)\n", strerror(errno), errno);
       continue;
     }
     char sock_info[128] = {'\0'};
-    get_sock_info(req->cfd,(char *)&sock_info);
-    fprintf(stdout, "::client thread %ld write to %s", pthread_self(), sock_info);
+    get_sock_info(req->cfd, (char *)&sock_info);
+    fprintf(stdout, "::client thread %ld write to %s\n", pthread_self(), sock_info);
   }
+  int cfd_dup = req->cfd;
+  shutdown(req->cfd, SHUT_WR);
+  close(req->cfd);
+  dict_del(map, &cfd_dup);
 }
 void handle_accept_request(void *arg)
 {
@@ -134,13 +144,16 @@ int main(int argc, char *argv[])
 {
   int port = (NULL == argv[1]) ? 6789 : atoi(argv[1]);
   int sock = init_socket(port);
-  if(sock == -1) {
+  if (sock == -1)
+  {
     return -1;
   }
   int thd_size = (NULL == argv[2]) ? 1 : atoi(argv[2]);
-  if(thd_size <=0) {
+  if (thd_size <= 0)
+  {
     thd_size = 1;
   }
+  signal(SIGPIPE, SIG_IGN);
   pthread_mutex_init(&lock, NULL);
   if (map == NULL)
   {
