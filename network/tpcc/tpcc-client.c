@@ -6,16 +6,25 @@
  ************************************************************************/
 
 #include "tpcc.h"
-#include <netinet/in.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #define BACKLOG (1024)
-int usage(const char *s) {
+int usage(const char *s)
+{
   fprintf(stdout, "usage: %s {host} {port} {count}");
   return -1;
 }
-int main(int argc, char *argv[]) {
-  if (argc != 4) {
+int main(int argc, char *argv[])
+{
+  if (argc != 4)
+  {
     return usage(argv[0]);
   }
   char *host = argv[1];
@@ -23,8 +32,9 @@ int main(int argc, char *argv[]) {
   int count = atoi(argv[3]);
 
   int sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock == -1) {
-    perror("socket happen error");
+  if (sock == -1)
+  {
+    printf("socket error: %s(errno: %d)\n",strerror(errno),errno);
     return -1;
   }
 
@@ -37,33 +47,39 @@ int main(int argc, char *argv[]) {
   session_msg sm;
   sm.number = count;
   sm.length = 8092;
-  if (connection(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+  if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+  {
     close(sock);
-    perror("##connect happen error");
+    printf("connect error: %s(errno: %d)\n",strerror(errno),errno);
     return -1;
   }
-  if (write(sock, &sm, sizeof(sm)) != sizeof(sm)) {
-    perror("##write happen error");
+  if (send(sock, &sm, sizeof(sm), 0) != sizeof(sm))
+  {
+    printf("send error: %s(errno: %d)\n",strerror(errno),errno);
   }
 
   payload_msg pm;
   pm.length = sm.length;
-  write(sock, &pm, sizeof(pm));
+  send(sock, &pm, sizeof(pm), 0);
   int32_t val = 0;
-  for (int i = 0; i < sm.number; i++) {
-    if (write(sock, &sm, sizeof(sm)) == -1) {
-      perror("##write happen error");
+  for (int i = 0; i < sm.number; i++)
+  {
+    if (send(sock, &sm, sizeof(sm), 0) == -1)
+    {
+       printf("send error: %s(errno: %d)\n",strerror(errno),errno);
+
     }
-    if (read(sock, &val, sizeof(val)) == -1) {
-      perror("##read happen error");
+    if (recv(sock, &val, sizeof(val), 0) == -1)
+    {
+      printf("recv error: %s(errno: %d)\n",strerror(errno),errno);
     }
     char ip[129] = {'\0'};
-    get_sock_info(sock, &ip);
+    get_sock_info(sock, (char *)&ip);
     size_t len = strlen(ip);
-    if (len > 0) {
+    if (len > 0)
+    {
       fprintf(stdout, "::client::read from %s,value=%d\n", ip, val);
     }
   }
-
   close(sock);
 }
