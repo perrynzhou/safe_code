@@ -91,9 +91,10 @@ void handle_connection(void *arg)
   {
         printf("send error: %s(errno: %d)\n",strerror(errno),errno);
   }
+  fprintf(stdout,"server recv session_msg:number=%d,length=%d\n",req->sm.number,req->sm.length);
    payload_msg pm;
    pm.length = req->sm.length + 4;
-  while (recv(req->cfd, &pm, sizeof(pm),0) == -1) //block function
+  while (recv(req->cfd, &pm, sizeof(pm),0) != -1) //block function
   {
     int v = rand()%1024;
     if (send(req->cfd, &v, sizeof(int),0) == -1)

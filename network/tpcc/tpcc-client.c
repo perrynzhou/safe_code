@@ -64,11 +64,11 @@ int main(int argc, char *argv[])
   int32_t val = 0;
   for (int i = 0; i < sm.number; i++)
   {
-    if (send(sock, &sm, sizeof(sm), 0) == -1)
+    if (send(sock, &pm, sizeof(pm), 0) == -1)
     {
        printf("send error: %s(errno: %d)\n",strerror(errno),errno);
-
     }
+    fprintf(stdout,"client send ok\n");
     if (recv(sock, &val, sizeof(val), 0) == -1)
     {
       printf("recv error: %s(errno: %d)\n",strerror(errno),errno);
