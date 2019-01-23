@@ -66,6 +66,68 @@ void MaxSubArrayTest()
   int max = MaxSubArray((int *)&arr, size);
   fprintf(stdout, "max = %d\n", max);
 }
+void QuickSort(int *arr, int l, int r)
+{
+  int i = l, j = r;
+  int cur = arr[l];
+  if (i < j)
+  {
+    while (i < j && arr[j] >= cur)
+    {
+      j--;
+    }
+    if (i < j)
+    {
+      arr[i++] = arr[j];
+    }
+    while (i < j && arr[i] < cur)
+    {
+      i++;
+    }
+    if (i < j)
+    {
+      arr[j--] = arr[i];
+    }
+    arr[i] = cur;
+    QuickSort(arr, l, i - 1);
+    QuickSort(arr, i + 1, r);
+  }
+}
+void SumTwo(int *arr, int len, int sum)
+{
+  fprintf(stdout, "{");
+  for (int i = 0; i < len; i++)
+  {
+    if (i == (len - 1))
+    {
+      fprintf(stdout, "%d}\n", arr[i]);
+      break;
+    }
+    fprintf(stdout, "%d,", arr[i]);
+  }
+  int l = 0, r = len - 1;
+  QuickSort(arr, l, r);
+  while (l < r)
+  {
+    int curSum = arr[l] + arr[r];
+    if (curSum == sum)
+    {
+      fprintf(stdout, "left =%d,right=%d,sum = %d\n", l, r, sum);
+      break;
+    }
+    else
+    {
+      if (curSum > sum)
+      {
+        r--;
+      }
+      else
+      {
+        l++;
+      }
+    }
+  }
+}
 } // namespace array_algorithms
 int main(void)
 {
