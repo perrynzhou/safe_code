@@ -11,7 +11,7 @@ void PassByRef(int count)
 {
   cout << "...start PassByRef..." << endl;
   int id = 100;
-  cout << "...start id address:" << static_cast<void *>(&id)<<",id="<<id << endl;
+  cout << "...start id address:" << static_cast<void *>(&id) << ",id=" << id << endl;
 
   auto add = [&id]() mutable {
     id++;
@@ -27,9 +27,9 @@ void PassByRef(int count)
 }
 void PassByValue(int count)
 {
-  cout << "...start PassByValue..." << endl;
-  int id = 100;
-  cout << "...start id address:" << static_cast<void *>(&id)<<",id="<<id << endl;
+  cout << "\n\n...start PassByValue..." << endl;
+  int id = 10;
+  cout << "...start id address:" << static_cast<void *>(&id) << ",id=" << id << endl;
 
   auto add = [id]() mutable {
     id++;
@@ -45,6 +45,7 @@ void PassByValue(int count)
 }
 int main(void)
 {
+ 
   PassByRef(5);
   PassByValue(5);
   return 0;
